@@ -1,0 +1,10 @@
+command:
+  run_demo1: ['rosrun', 'baxter_examples', 'joint_velocity_wobbler.py']
+  run_demo2: ['rosrun', 'baxter_examples', 'joint_velocity_puppet.py', '-l', 'left']
+  run_demo3: ['rosrun', 'baxter_examples', 'joint_position_keyboard.py']
+  run_demo4: ['rosrun', 'baxter_examples', 'head_wobbler.py']
+  run_demo5: ['rosrun', 'baxter_examples', 'gripper_cuff_control.py']
+  run_demo6: ['rosrun', 'baxter_examples', 'joint_position_joystick.py', '-j', 'ps3']
+  run_test1: ['roslaunch', 'learning_bondpy', 'demo1_test.launch']
+  run_test2: ['roslaunch', 'learning_bondpy', 'demo2_test.launch']
+  run_test3: ['roslaunch', 'learning_bondpy', 'parent_process1.launch']
