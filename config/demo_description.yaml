@@ -1,0 +1,27 @@
+d1: 
+    command: ['rosrun', 'baxter_examples', 'joint_velocity_wobbler.py']
+    bonds: ['']
+d2:
+    command: ['rosrun', 'baxter_examples', 'joint_velocity_puppet.py', '-l', 'left']
+    bonds: ['']
+d3:
+    command: ['rosrun', 'baxter_examples', 'joint_position_keyboard.py']
+    bonds: ['']
+d4:
+    command: ['rosrun', 'baxter_examples', 'head_wobbler.py']
+    bonds: ['']
+d5:
+    command: ['rosrun', 'baxter_examples', 'gripper_cuff_control.py']
+    bonds: ['']
+d6:
+    command: ['rosrun', 'baxter_examples', 'joint_position_joystick.py', '-j', 'ps3']
+    bonds: ['']
+test1:
+    command: ['roslaunch', 'learning_bondpy', 'demo1_test.launch']
+    bonds: ['turtlesim_infinity']
+test2:
+    command: ['roslaunch', 'learning_bondpy', 'demo2_test.launch']
+    bonds: ['turtlesim_circle', 'child_process_b']
+test3:
+    command: ['roslaunch', 'learning_bondpy', 'parent_process1.launch']
+    bonds: ['child_process_a', 'child_process_b', 'child_process_c', 'child_process_d']
