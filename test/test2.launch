@@ -1,0 +1,7 @@
+<launch>
+
+	<node name="turtlesim_circle" pkg="baxter_demo" type="turtlesim_circle.py" respawn="false"/>
+	<node name="turtlesim_node" pkg="turtlesim" type="turtlesim_node" respawn="false"/>
+	<node name="child_process_b" pkg="baxter_demo" type="child_process_d.py" respawn="false" output='screen' launch-prefix="xterm -e"/>
+
+</launch>

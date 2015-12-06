@@ -8,6 +8,7 @@ import baxter_demo.msg as bdm
 
 from bondpy import bondpy
 from baxter_demo import Baxter
+from baxter_demo import YamlExtractor
 
 
 def shutdown_handler():
@@ -20,72 +21,6 @@ def shutdown_handler():
 	# robot._rs.disable()
 	rospy.sleep(3)
 	return True
-
-
-def yaml_loader(file_path):
-	""" Loads the configuration file that includes all the commands of demos. 
-	"""
-	with open(file_path, "r") as file_descriptor:
-		data = yaml.load(file_descriptor)
-	return data
-
-
-def get_command(goal):
-	""" Extracts the demo command from the configuration file based on the
-	goal requested by the user """
-	rospack = rospkg.RosPack()
-	pkg_path = rospack.get_path('baxter_demo')
-	filepath = pkg_path + "/config/demo_command.yaml"
-
-	goal_cmd = goal.ui_command.command
-	rd_data = yaml_loader(filepath)
-	cmd = rd_data.get("command")
-
-	if goal_cmd in cmd.keys():
-		cmd_req = cmd.get(goal_cmd)
-		return cmd_req
-
-
-def on_formed_cb(child):
-	""" Callback function that gets triggered when the bond is formed with 
-	a child node. """
-	print "\n\n\nBond has just been formed with %s\n\n\n" % child
-
-
-def on_broken_cb(child):
-	""" Callback function that gets triggered when one of the bonds loses 
-	connection with the demo manager. It also terminates all other child 
-	processes.	"""
-	print "\n\n\n%s has broken the bond\n\n\n" % child 
-	if p is not None:
-		terminate_process_and_children(p)
-
-
-def gen_bonds(process):
-	""" Generates bonds with the nodes connected to the running demo.
-	Each child must have a bond whose bond topic and id match with the 
-	one in here. The common topic name is always "demo_bond_topic" 
-	and ids are exctracted from the "bond_description.yaml" file  """
-	ros_pack = rospkg.RosPack()
-	pkgpath = ros_pack.get_path('baxter_demo')
-	filepath = pkgpath + "/config/bond_description.yaml"
-	children_names = []
-	children_ids = []
-
-	bond_data = yaml_loader(filepath)
-
-	if process in bond_data.keys():
-		children = bond_data.get(process)
-		children_names = children.keys()
-		children_ids = children.values()
-
-		for i in range(len(children)):
-			bond = bondpy.Bond("demo_bond_topic", 
-									children_ids[i], 
-									on_broken = lambda: on_broken_cb(children_names[i]),
-									on_formed = lambda: on_formed_cb(children_names[i]))
-			bond.start()
-			bond.wait_until_formed()
 
 
 ############ Funtions from NxRLab/nxr_baxter ##################
@@ -251,6 +186,7 @@ class RunDemo(smach.State):
 		global p
 		rd_goal = userdata.goal_from_ui
 		rd_result = userdata.result_for_ui
+		x = YamlExtractor(rd_goal.ui_command.command)
 
 		if rd_goal.ui_command.command == bdm.GetUserCommand.MOVE_TO_HOME_POSITION or \
 		   rd_goal.ui_command.command == bdm.GetUserCommand.MOVE_TO_IDLE_MODE or \
@@ -258,7 +194,7 @@ class RunDemo(smach.State):
 			return 'different_request'
 
 		else:
-			ui_cmd = get_command(rd_goal)
+			ui_cmd = x.get_command()
 
 			if p is None:
 				p = subprocess.Popen(ui_cmd)
@@ -301,16 +237,42 @@ class Bonder(smach.State):
 		   bonder_goal.ui_command.command == bdm.GetUserCommand.MOVE_TO_IDLE_MODE or \
 		   bonder_goal.ui_command.command == bdm.GetUserCommand.CANCEL_DEMO:
 			return 'different_request'
-		# if p is None:
-		# 	return 'different_request'
 
 		else:
 			goal_process = bonder_goal.ui_command.command
-			gen_bonds(goal_process)
-			rospy.sleep(3)
+			self.gen_bonds(goal_process)
 			return 'bonds_generated'
 
+	def on_formed_cb(self, child):
+		""" Callback function that gets triggered when the bond is formed with 
+		a child node. """
+		print "\n\n\nBond has just been formed with %s\n\n\n" % child
 
+
+	def on_broken_cb(self, child):
+		""" Callback function that gets triggered when one of the bonds loses 
+		connection with the demo manager. It also terminates all other child 
+		processes.	"""
+		print "\n\n\n%s has broken the bond\n\n\n" % child 
+		if p is not None:
+			terminate_process_and_children(p)
+
+
+	def gen_bonds(self, process):
+		""" Generates bonds with the nodes connected to the running demo.
+		Each child must have a bond whose bond topic and id match with the 
+		one in here. The common topic name is always "demo_bond_topic" 
+		and ids are exctracted from the "bond_description.yaml" file  """
+		x = YamlExtractor(process)
+		children = x.get_bonds()
+
+		for i in range(len(children)):
+			bond = bondpy.Bond("demo_bond_topic", 
+									children[i], 
+									on_broken = lambda: self.on_broken_cb(children[i]),
+									on_formed = lambda: self.on_formed_cb(children[i]))
+			bond.start()
+			bond.wait_until_formed()
 
 
 class CancelDemo(smach.State):

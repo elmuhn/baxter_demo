@@ -8,6 +8,7 @@ import baxter_demo.msg as bdm
 import yaml
 import rospkg
 
+from baxter_demo import YamlExtractor
 
 def yaml_loader(filepath):
 	""" Loads the configuration file that includes the demo name options to send

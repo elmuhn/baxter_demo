@@ -1,0 +1,8 @@
+<launch>
+
+	<node name="child_process_a" pkg="baxter_demo" type="child_process_a.py" launch-prefix="xterm -e"/>
+	<node name="child_process_b" pkg="baxter_demo" type="child_process_b.py" launch-prefix="xterm -e"/>
+	<node name="child_process_c" pkg="baxter_demo" type="child_process_c.py" launch-prefix="xterm -e"/>
+	<node name="child_process_d" pkg="baxter_demo" type="child_process_d.py" launch-prefix="xterm -e"/>
+
+</launch>

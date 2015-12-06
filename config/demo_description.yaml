@@ -17,11 +17,11 @@ d6:
     command: ['rosrun', 'baxter_examples', 'joint_position_joystick.py', '-j', 'ps3']
     bonds: ['']
 test1:
-    command: ['roslaunch', 'learning_bondpy', 'demo1_test.launch']
+    command: ['roslaunch', 'baxter_demo', 'test1.launch']
     bonds: ['turtlesim_infinity']
 test2:
-    command: ['roslaunch', 'learning_bondpy', 'demo2_test.launch']
+    command: ['roslaunch', 'baxter_demo', 'test2.launch']
     bonds: ['turtlesim_circle', 'child_process_b']
 test3:
-    command: ['roslaunch', 'learning_bondpy', 'parent_process1.launch']
+    command: ['roslaunch', 'baxter_demo', 'test3.launch']
     bonds: ['child_process_a', 'child_process_b', 'child_process_c', 'child_process_d']

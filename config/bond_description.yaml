@@ -1,9 +1,0 @@
-run_demo1: ['']
-run_demo2: ['']
-run_demo3: ['']
-run_demo4: ['']
-run_demo5: ['']
-run_demo6: ['']
-run_test1: {'turtlesim_infinity':'cn_t1'}
-run_test2: {'turtlesim_circle':'cn_t2', 'child_process_b':'m2b'}
-run_test3: {'child_process_a':'m2a', 'child_process_b':'m2b', 'child_process_c':'m2c', 'child_process_d':'m2d'}

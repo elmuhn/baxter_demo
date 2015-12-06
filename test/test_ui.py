@@ -8,29 +8,7 @@ import baxter_demo.msg as bdm
 import yaml
 import rospkg
 
-
-def yaml_loader(filepath):
-	""" Loads the configuration file that includes the demo name options to send
-	to the demo manager """
-	with open(filepath, "r") as file_descriptor:
-		data = yaml.load(file_descriptor)
-	return data
-
-
-def get_demo_name(inp):
-	""" Extracts the chosen demo name from the configuration file based on the
-	user input """
-	rospack = rospkg.RosPack()
-	pkg_path = rospack.get_path('baxter_demo')
-	ui_filepath = pkg_path + "/config/user_input.yaml"
-	ui_data = yaml_loader(ui_filepath)
-	names = ui_data.get("input")
-	
-	if inp in names.keys():
-		name_req = names.get(inp)
-		return name_req
-	else:
-		return None
+from baxter_demo import YamlExtractor
 
 
 def main():
@@ -85,7 +63,8 @@ def main():
 			if inp:
 
 				usr_inp = sys.stdin.readline().strip()
-				demo_req = get_demo_name(usr_inp)
+				x = YamlExtractor(usr_inp)
+				demo_req = x.get_name()
 
 				if demo_req is None:
 					print "Undefined input!\n"
@@ -158,7 +137,6 @@ def main():
 	ui_sm.execute()
 	rospy.spin()
 	sis.stop()
-
 
 if __name__ =='__main__':
 	main()

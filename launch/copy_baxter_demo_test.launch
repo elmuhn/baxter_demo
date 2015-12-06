@@ -1,7 +1,0 @@
-<launch>
-
-	<node name= "smach_viewer" pkg="smach_viewer" type="smach_viewer.py" respawn="false" /> 
-	<node name= "copy_demo_managertest" pkg="baxter_demo" type="copy_demo_managertest.py" respawn="false" output="screen"/>
-	<node name= "copy_keyboard_uitest" pkg="baxter_demo" type="copy_keyboard_uitest.py" output="screen" launch-prefix="xterm -e" respawn="false" />
-
-</launch> 
