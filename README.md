@@ -25,6 +25,6 @@ Describing a demo in a [YAML](http://wiki.ros.org/YAML%20Overview) file is very 
 
 ## 3. Project Files
 ### 3.1 Demo Manager
-```p
+```
  demo_manager.py 
  ``` is constructed as a combination of SMACH containers; [Concurrence](http://docs.ros.org/jade/api/smach/html/python/smach.concurrence.Concurrence-class.html) container, and [State Machine](http://docs.ros.org/jade/api/smach/html/python/smach.state_machine.StateMachine-class.html) container. Actual work such as interacting with the Baxter, running/cancelling demos as well as generating bonds is done in this file. Below image shows the baxter_demo_manager SMACH container that consists of different states. 
