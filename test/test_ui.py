@@ -5,11 +5,46 @@ import smach, smach_ros
 import sys, select
 import actionlib
 import baxter_demo.msg as bdm 
-import yaml
-import rospkg
 
 from baxter_demo import YamlExtractor
+from baxter_demo import kbhit
+from std_msgs.msg import String
 
+
+class SetCancellation(object):
+	""" Cancel State Controller
+
+	A class used in Cancel State of ui_sm state machine. This class waits for the 
+	user to press 'c' key on keyboard using KBHit class. It also activates a Subscriber
+	checking whether a currently running demo terminates. The Subscriber is to a topic
+	called "termination_status"
+	"""
+
+	def __init__(self, goal):
+		self.goal = goal
+		self.is_requested = False
+		self.kb = kbhit.KBHit()
+		self.sub = rospy.Subscriber("termination_status", String, self.sub_cb)
+		self.kb_timer = rospy.Timer(rospy.Duration(0.1), self.key_cb)
+
+	def sub_cb(self, data):
+		#rospy.loginfo("Demo has just terminated!")
+		self.goal.ui_command.command = bdm.GetUserCommand.CANCEL_DEMO
+		self.is_requested = True
+		self.kb.set_normal_term()
+		return
+
+	def key_cb(self, tdat):
+		if self.kb.kbhit():
+			c = self.kb.getch()
+			if c == 'c':
+				rospy.loginfo("You pressed 'c', cancelling demo...")
+				self.goal.ui_command.command = bdm.GetUserCommand.CANCEL_DEMO
+				self.is_requested = True
+				self.kb.set_normal_term()
+
+			print "Undefined input! Please press 'c' to cancel demo"
+		return
 
 def main():
 
@@ -56,7 +91,7 @@ def main():
 
 
 		def get_selection_cb(userdata, goal):
-			print "  d1 : joint velocity wobbler \n  d2 : joint velocity puppet\n  d3 : joint position keyboard\n  d4 : head wobbler\n  d5 : gripper cuff control\n test1 : turtle_sim infinity drawer\n test2 : turtle_sim circle drawer\n"
+			print "  d1 : joint velocity wobbler \n  d2 : joint velocity puppet\n  d3 : joint position keyboard\n  d4 : head wobbler\n  d5 : gripper cuff control\n d6: joint position joystick \n test1 : turtle_sim infinity drawer\n test2 : turtle_sim circle drawer\n"
 			print "Select a demo to run (e.g. d1): "
 			inp, out, err = select.select([sys.stdin], [], [], 15)
 
@@ -102,19 +137,49 @@ def main():
 
 
 		def get_cancel_cb(userdata, goal):
-			print "Press c+enter to cancel the current demo: "
-			inp, out, err = select.select([sys.stdin], [], [])
 
-			if inp:
-				usr_inp = sys.stdin.readline().strip()
+			cancel = SetCancellation(goal)
+			print_cond = True
 
-				if usr_inp == 'c':
-					goal.ui_command.command = bdm.GetUserCommand.CANCEL_DEMO										
-				else:
-					print "Undefined input!"
-					return get_cancel_cb(userdata, goal)
+			while not cancel.is_requested:
+				if print_cond:
+					print "Press c to cancel the current demo: "
+					print_cond = False
 
+			kb = kbhit.KBHit()
+			kb.set_normal_term()
 			return goal
+
+
+
+			# print "Press c+enter to cancel the current demo: "
+			# inp, out, err = select.select([sys.stdin], [], [])
+
+			# def callback(data, goal):
+			# 	print data.data
+			# 	goal.ui_command.command = bdm.GetUserCommand.CANCEL_DEMO
+			# 	return
+			# 	# return goal
+
+			# # def termination_subscriber():
+			# # 	sub = rospy.Subscriber("termination_status", String, callback)
+
+			# # termination_subscriber()
+			# sub = rospy.Subscriber("termination_status", String, callback, callback_args=goal)
+
+			# if inp:
+			# 	usr_inp = sys.stdin.readline().strip()
+
+			# 	if usr_inp == 'c':
+			# 		goal.ui_command.command = bdm.GetUserCommand.CANCEL_DEMO										
+			# 	else:
+			# 		print "Undefined input!"
+			# 		return get_cancel_cb(userdata, goal)
+
+			# # elif out:
+			# # 	termination_subscriber()
+			# # 	print "sikinti burda!"
+			# # 	goal.ui_command.command = bdm.GetUserCommand.CANCEL_DEMO
 
 		def show_cancel_status_cb(userdata, status, result):
 			if status == actionlib.GoalStatus.SUCCEEDED and result.sys_result.result == bdm.GetResult.DEMO_TERMINATED:

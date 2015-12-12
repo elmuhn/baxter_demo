@@ -1,14 +1,15 @@
 #!/usr/bin/env python
 
-import rospy, rospkg
+import rospy
 import smach, smach_ros
-import subprocess, os, signal
-import yaml
+import subprocess
 import baxter_demo.msg as bdm 
 
 from bondpy import bondpy
 from baxter_demo import Baxter
 from baxter_demo import YamlExtractor
+from baxter_demo import nxr 
+from std_msgs.msg import String
 
 
 def shutdown_handler():
@@ -21,46 +22,6 @@ def shutdown_handler():
 	# robot._rs.disable()
 	rospy.sleep(3)
 	return True
-
-
-############ Funtions from NxRLab/nxr_baxter ##################
-######## source: git@github.com:NxRLab/nxr_baxter.git ##############
-
-def process_get_children(node):
-    ps_command = subprocess.Popen("ps -o pid --ppid %d --noheaders" % int(node), 
-    										shell=True, 
-    										stdout=subprocess.PIPE)
-    ps_output = ps_command.stdout.read()
-    retcode = ps_command.wait()
-    return ps_output.split("\n")[:-1]
-    
-
-def process_get_children_recursively(node, leafs):
-    if node is not None:
-      children = process_get_children(node)
-      if len(children) == 0:
-      	leafs.append(node)
-      for n in children:
-      	process_get_children_recursively(n, leafs)
-
-            
-def terminate_process_and_children(p):
-    plist = []
-    try:
-    	pnum = p.pid
-    except AttributeError:
-      pnum = p
-    process_get_children_recursively(pnum, plist)
-    for pid_str in plist:
-      os.kill(int(pid_str), signal.SIGINT)
-    try:
-    	p.kill()
-    except AttributeError:
-    	os.kill(int(p), signal.SIGINT)
-    return
-
-    ##################################################
-    ##################################################
 
 
 class MoveToHome(smach.State):
@@ -156,8 +117,8 @@ class MoveToIdle(smach.State):
 		else:
 			return 'different_request'
 
+p = None
 
-p = None # Process variable
 
 class RunDemo(smach.State):
 	""" Inherited class from smach.State.
@@ -186,93 +147,186 @@ class RunDemo(smach.State):
 		global p
 		rd_goal = userdata.goal_from_ui
 		rd_result = userdata.result_for_ui
-		x = YamlExtractor(rd_goal.ui_command.command)
-
+		
 		if rd_goal.ui_command.command == bdm.GetUserCommand.MOVE_TO_HOME_POSITION or \
 		   rd_goal.ui_command.command == bdm.GetUserCommand.MOVE_TO_IDLE_MODE or \
 		   rd_goal.ui_command.command == bdm.GetUserCommand.CANCEL_DEMO:
 			return 'different_request'
 
 		else:
-			ui_cmd = x.get_command()
+			dp = DemoProcessor(rd_goal.ui_command.command)
+			ui_cmd = dp.get_demo_cmd()
 
-			if p is None:
-				p = subprocess.Popen(ui_cmd)
-				rd_result.sys_result.result = bdm.GetResult.DEMO_EXECUTED
-				return 'demo_executed'
+			p = subprocess.Popen(ui_cmd)
+			p_id = p.pid
+			rd_result.sys_result.result = bdm.GetResult.DEMO_EXECUTED
+			return 'demo_executed'
 
-			else:
-				rd_result.sys_result.result = bdm.GetResult.IS_ABORTED
-				return 'aborted'
-
-
-class Bonder(smach.State):
-	""" Inherited class from smach.State.
-
-	A SMACH state that interacts with the user interface. Its execute method
-	gets called when the user wants to run a demo creating a subprocess. This
-	state generates bonds between the demo and the child processes of the
-	currently running demo. 
-
-	Outcomes:
-		- 'bonds_generated' : returns if all bonds are generated
-		- 'different_request' : returns if another state is called
-		- 'aborted' : returns if the bonding process fails 
-
-	Input & Output keys:
-		- 'goal_from_ui' : an action goal sent by the user
-		- 'result_for_ui' : an action result to be sent to the user interface 
-	"""
-	def __init__(self):
-		smach.State.__init__(self, outcomes = ['bonds_generated', 'different_request', 'aborted'],
-									input_keys = ['goal_from_ui', 'result_for_ui'],
-									output_keys = ['result_for_ui'])
-
-	def execute(self, userdata):
-		global p
-		bonder_goal = userdata.goal_from_ui
-		bonder_result = userdata.result_for_ui
-
-		if bonder_goal.ui_command.command == bdm.GetUserCommand.MOVE_TO_HOME_POSITION or \
-		   bonder_goal.ui_command.command == bdm.GetUserCommand.MOVE_TO_IDLE_MODE or \
-		   bonder_goal.ui_command.command == bdm.GetUserCommand.CANCEL_DEMO:
-			return 'different_request'
-
-		else:
-			goal_process = bonder_goal.ui_command.command
-			self.gen_bonds(goal_process)
-			return 'bonds_generated'
-
-	def on_formed_cb(self, child):
-		""" Callback function that gets triggered when the bond is formed with 
-		a child node. """
-		print "\n\n\nBond has just been formed with %s\n\n\n" % child
+			# else:
+			# 	rd_result.sys_result.result = bdm.GetResult.IS_ABORTED
+			# 	return 'aborted'
 
 
-	def on_broken_cb(self, child):
-		""" Callback function that gets triggered when one of the bonds loses 
-		connection with the demo manager. It also terminates all other child 
-		processes.	"""
-		print "\n\n\n%s has broken the bond\n\n\n" % child 
+class DemoProcessor(object):
+	global p
+	def __init__(self, goal_process):
+		self.goal_process = goal_process
+		self.x = YamlExtractor(self.goal_process)
+		self.topics = self.x.get_topics()
+		self.ids = self.x.get_bond_ids()
+		self.bond = None
+		self.bond_list = []
+		self.gen_bonds()
+		return
+
+	def get_demo_cmd(self):
+		return self.x.get_command()
+
+	def gen_bonds(self):
+		# Generate bond instances and store in a list
+		for i in range(len(self.topics)):
+			self.bond = bondpy.Bond(self.topics[i], self.ids[i])
+			self.bond_list.append(self.bond)
+
+		#Start each bond and set callbacks
+		for j in range(len(self.bond_list)):
+			self.bond_list[j].start()
+			self.bond_list[j].set_broken_callback(self.on_broken_cb)
+			self.bond_list[j].set_formed_callback(self.on_formed_cb)
+			#self.bond_list[j].wait_until_formed()
+			print "Done with bond settings"
+
+		return
+
+	def on_formed_cb(self):
+		print "Bond has been formed"
+
+	def on_broken_cb(self):
+		print "Bond has broken"
 		if p is not None:
-			terminate_process_and_children(p)
+			nxr.terminate_process_and_children(self.p)
+			self.termination_publisher()
+		else:
+			print "There is something wrong with p!!!"
+			return
+
+	def termination_publisher(self):
+		pub = rospy.Publisher("termination_status", String, queue_size=3)
+		r = rospy.Rate(10)
+		start_time = rospy.Time.now().secs 
+		while rospy.Time.now().secs - start_time < 1:
+			msg = 'Demo terminated!'
+			pub.publish(msg)
+			r.sleep()
 
 
-	def gen_bonds(self, process):
-		""" Generates bonds with the nodes connected to the running demo.
-		Each child must have a bond whose bond topic and id match with the 
-		one in here. The common topic name is always "demo_bond_topic" 
-		and ids are exctracted from the "bond_description.yaml" file  """
-		x = YamlExtractor(process)
-		children = x.get_bonds()
 
-		for i in range(len(children)):
-			bond = bondpy.Bond("demo_bond_topic", 
-									children[i], 
-									on_broken = lambda: self.on_broken_cb(children[i]),
-									on_formed = lambda: self.on_formed_cb(children[i]))
-			bond.start()
-			bond.wait_until_formed()
+# class Bonder(smach.State):
+# 	""" Inherited class from smach.State.
+
+# 	A SMACH state that interacts with the user interface. Its execute method
+# 	gets called when the user wants to run a demo creating a subprocess. This
+# 	state generates bonds between demo manager and the child processes of 
+# 	the	current demo. 
+
+# 	Outcomes:
+# 		- 'bonds_generated' : returns if all bonds are generated
+# 		- 'different_request' : returns if another state is called
+# 		- 'aborted' : returns if the bonding process fails 
+
+# 	Input & Output keys:
+# 		- 'goal_from_ui' : an action goal sent by the user
+# 		- 'result_for_ui' : an action result to be sent to the user interface 
+# 	"""
+# 	def __init__(self):
+# 		smach.State.__init__(self, outcomes = ['bonds_generated', 'different_request', 'aborted'],
+# 									input_keys = ['goal_from_ui', 'result_for_ui'],
+# 									output_keys = ['result_for_ui'])
+
+# 	def execute(self, userdata):
+# 		global p
+# 		bonder_goal = userdata.goal_from_ui
+# 		bonder_result = userdata.result_for_ui
+
+# 		if bonder_goal.ui_command.command == bdm.GetUserCommand.MOVE_TO_HOME_POSITION or \
+# 		   bonder_goal.ui_command.command == bdm.GetUserCommand.MOVE_TO_IDLE_MODE or \
+# 		   bonder_goal.ui_command.command == bdm.GetUserCommand.CANCEL_DEMO:
+# 			return 'different_request'
+
+# 		else:
+# 			goal_process = bonder_goal.ui_command.command
+# 			# self.gen_bonds(goal_process)
+# 			GenBond(goal_process, p)
+# 			return 'bonds_generated'
+
+	# def gen_bonds(self, process):
+	# 	""" Generates bonds with the nodes connected to the running demo.
+	# 	Each child must have a bond whose bond topic and id match with the 
+	# 	one in here. The common topic name is always "demo_bond_topic" 
+	# 	and ids are exctracted from the "bond_description.yaml" file  """
+	# 	x = YamlExtractor(process)
+	# 	topics = x.get_topics()
+	# 	ids = x.get_bond_ids()
+	# 	bond_list = []
+
+	# 	for i in range(len(topics)):
+	# 		bond =bondpy.Bond(topics[i], ids[i])
+	# 		# bond.start()
+	# 		bond_list.append(bond)
+
+	# 	for j in range(len(bond_list)):
+	# 		bond_list[j].start()
+	# 		bond_list[j].set_formed_callback(self.on_formed_cb)
+	# 		bond_list[j].set_broken_callback(self.on_broken_cb)
+	# 		bond_list[j].wait_until_formed()
+
+
+		# for i in range(1):
+		# 	bond = bondpy.Bond(topics[i], 
+		# 							children[i], 
+		# 							on_broken = self.on_broken_cb,
+		# 							on_formed = self.on_formed_cb)
+
+		# 	# bond = bondpy.Bond("demo_bond_topic", 
+		# 	# 						children[i])
+		# 	bond.start()
+		# 	# bond.set_formed_callback(lambda: self.on_formed_cb(children[i]))
+		# 	# bond.set_broken_callback(lambda: self.on_broken_cb(children[i]))
+		# 	# rospy.sleep(5)
+		# 	bond.wait_until_formed()
+		# 	print topics[i]
+		# 	print children[i]
+		# 	print "[test_dm] Done waiting for bond"
+		# return
+
+	# def on_formed_cb(self):
+	# 	""" Callback function that gets triggered when the bond is formed with 
+	# 	a child node. """
+	# 	# print "\nBond has just been formed with {}\n" .format(child)w
+	# 	print "Bond has been formed"
+	# 	return
+
+	# def on_broken_cb(self):
+	# 	""" Callback function that gets triggered when one of the bonds loses 
+	# 	connection with the demo manager. It also terminates all other child 
+	# 	processes.	"""
+	# 	print "Bond thinks it was broken"
+	# 	if p is not None:
+	# 		# print "\n{} has broken the bond\n" .format(child) 
+	# 		nxr.terminate_process_and_children(p)
+	# 		self.termination_publisher()
+	# 		# bond.shutdown()
+
+	# def termination_publisher(self):
+	# 	pub = rospy.Publisher("termination_status", String, queue_size=3)
+	# 	r = rospy.Rate(10)
+	# 	start_time = rospy.Time.now().secs 
+	# 	while rospy.Time.now().secs - start_time < 1:
+	# 		msg = 'Demo terminated!'
+	# 		pub.publish(msg)
+	# 		r.sleep()
+		# msg = 'Demo terminated!'
+		# pub.publish(msg)
 
 
 class CancelDemo(smach.State):
@@ -297,26 +351,25 @@ class CancelDemo(smach.State):
 									output_keys = ['result_for_ui'])
 
 	def execute(self, userdata):
-		global p
 		c_goal = userdata.goal_from_ui
 		c_result = userdata.result_for_ui
 		#robot = Baxter()
 
-		# if c_goal.ui_command.command == bdm.GetUserCommand.CANCEL_DEMO:
-		# 	if p is not None:
-		# 		terminate_process_and_children(p)
-		# 		p = None
-		# 		#robot.set_neutral()
-		# 		c_result.sys_result.result = bdm.GetResult.DEMO_TERMINATED
-		# 		return 'demo_terminated'
+		if c_goal.ui_command.command == bdm.GetUserCommand.CANCEL_DEMO:
+			if p is not None:
+				nxr.terminate_process_and_children(p)
+				p = None
+				#robot.set_neutral()
+				c_result.sys_result.result = bdm.GetResult.DEMO_TERMINATED
+				return 'demo_terminated'
 		# 	else:
 		# 		c_result.sys_result.result = bdm.GetResult.IS_ABORTED
 		# 		return 'aborted'
-		if p is not None:
-			terminate_process_and_children(p)
-			p = None
-			c_result.sys_result.result = bdm.GetResult.DEMO_TERMINATED
-			return 'demo_terminated'
+		# if p is not None:
+		# 	nxr.terminate_process_and_children(p)
+		# 	p = None
+		# 	c_result.sys_result.result = bdm.GetResult.DEMO_TERMINATED
+		# 	return 'demo_terminated'
 
 		else:
 			return 'different_request'
@@ -340,15 +393,13 @@ def main():
 		if outcome_map['MOVE_TO_HOME_POSITION'] == 'in_home' or \
 		   outcome_map['MOVE_TO_IDLE_MODE'] == 'in_idle' or \
 		   outcome_map['RUN_DEMOS'] == 'execution_succeeded' or \
-		   outcome_map['CANCEL_DEMO'] == 'demo_terminated' or \
-		   outcome_map['GENERATE_BONDS'] == 'bonds_generated':
+		   outcome_map['CANCEL_DEMO'] == 'demo_terminated':
 		   return 'goal_succeeded'
 
 		elif outcome_map['MOVE_TO_HOME_POSITION'] == \
 			outcome_map['MOVE_TO_IDLE_MODE'] == \
 			outcome_map['RUN_DEMOS'] == \
-			outcome_map['CANCEL_DEMO'] == \
-			outcome_map['GENERATE_BONDS'] == 'aborted':
+			outcome_map['CANCEL_DEMO'] == 'aborted':
 			return 'goal_aborted'
 
 	# Create the top level SMACH concurrence container
@@ -360,14 +411,12 @@ def main():
 																		{'MOVE_TO_HOME_POSITION':'in_home', 
 																		  'MOVE_TO_IDLE_MODE':'in_idle',
 																		  'RUN_DEMOS':'execution_succeeded',
-																		  'CANCEL_DEMO':'demo_terminated',
-																		  'GENERATE_BONDS':'bonds_generated'},  
+																		  'CANCEL_DEMO':'demo_terminated'},  
 																	'goal_aborted':
 																		{'MOVE_TO_HOME_POSITION':'aborted',
 																		  'MOVE_TO_IDLE_MODE':'aborted',
 																		  'RUN_DEMOS':'aborted',
-																		  'CANCEL_DEMO':'aborted',
-																		  'GENERATE_BONDS':'aborted'}},
+																		  'CANCEL_DEMO':'aborted'}},
 												outcome_cb = outcome_term_cb)
 
 	initial_data = baxter_demo_cc.userdata
@@ -396,7 +445,7 @@ def main():
 			smach.StateMachine.add('RECOVER_DEMO', RecoveryState(), transitions = {'recovered':'RUN_DEMO', 
 																							    'aborted':'aborted'})
 
-		smach.Concurrence.add('GENERATE_BONDS', Bonder())
+		# smach.Concurrence.add('GENERATE_BONDS', Bonder())
 		smach.Concurrence.add('CANCEL_DEMO', CancelDemo())
 
 	# Generate an introspection server instance to view whole SMACH tree
@@ -419,6 +468,7 @@ def main():
 	rospy.spin()
 	
 	sis.stop()
+
 
 if __name__ == '__main__':
 	main()

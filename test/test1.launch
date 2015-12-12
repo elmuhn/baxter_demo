@@ -1,6 +1,6 @@
 <launch>
 
-	<node name="turtlesim_infinity" pkg="baxter_demo" type="turtlesim_infinity.py" respawn="false" />
+	<node name="turtlesim_infinity" pkg="baxter_demo" type="turtlesim_infinity.py" respawn="false"  output="screen"/>
 	<node name="turtlesim_node" pkg="turtlesim" type="turtlesim_node" respawn="false"/>
 
 </launch>

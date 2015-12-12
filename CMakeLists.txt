@@ -55,7 +55,6 @@ catkin_python_setup()
 add_message_files(
   FILES
   GetUserCommand.msg
-  GetStatus.msg
   GetResult.msg
 )
 

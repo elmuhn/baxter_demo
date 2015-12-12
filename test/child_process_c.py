@@ -6,7 +6,7 @@ from bondpy import bondpy
 
 def main():
 	rospy.init_node('child_node_c')
-	bond = bondpy.Bond("bond_topic", "m2c")
+	bond = bondpy.Bond("child_process_c", "child_process_c")
 	bond.start()
 	print "Child C has just joined!"
 	rospy.sleep(4)

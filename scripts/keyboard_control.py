@@ -5,34 +5,46 @@ import smach, smach_ros
 import sys, select
 import actionlib
 import baxter_demo.msg as bdm 
-import yaml
-import rospkg
 
 from baxter_demo import YamlExtractor
-
-def yaml_loader(filepath):
-	""" Loads the configuration file that includes the demo name options to send
-	to the demo manager """
-	with open(filepath, "r") as file_descriptor:
-		data = yaml.load(file_descriptor)
-	return data
+# from baxter_demo import kbhit
+from std_msgs.msg import String
 
 
-def get_demo_name(inp):
-	""" Extracts the chosen demo name from the configuration file based on the
-	user input """
-	rospack = rospkg.RosPack()
-	pkg_path = rospack.get_path('baxter_demo')
-	ui_filepath = pkg_path + "/config/user_input.yaml"
-	ui_data = yaml_loader(ui_filepath)
-	names = ui_data.get("input")
-	
-	if inp in names.keys():
-		name_req = names.get(inp)
-		return name_req
-	else:
-		return None
+# class SetCancellation(object):
+# 	""" Cancel State Controller
 
+# 	A class used in Cancel State of ui_sm state machine. This class waits for the 
+# 	user to press 'c' key on keyboard using KBHit class. It also activates a Subscriber
+# 	checking whether a currently running demo terminates. The Subscriber is to a topic
+# 	called "termination_status"
+# 	"""
+
+# 	def __init__(self, goal):
+# 		self.goal = goal
+# 		self.is_requested = False
+# 		self.kb = kbhit.KBHit()
+# 		self.sub = rospy.Subscriber("termination_status", String, self.sub_cb)
+# 		self.kb_timer = rospy.Timer(rospy.Duration(0.1), self.key_cb)
+
+# 	def sub_cb(self, data):
+# 		#rospy.loginfo("Demo has just terminated!")
+# 		self.goal.ui_command.command = bdm.GetUserCommand.CANCEL_DEMO
+# 		self.is_requested = True
+# 		self.kb.set_normal_term()
+# 		return
+
+# 	def key_cb(self, tdat):
+# 		if self.kb.kbhit():
+# 			c = self.kb.getch()
+# 			if c == 'c':
+# 				rospy.loginfo("You pressed 'c', cancelling demo...")
+# 				self.goal.ui_command.command = bdm.GetUserCommand.CANCEL_DEMO
+# 				self.is_requested = True
+# 				self.kb.set_normal_term()
+
+# 			print "Undefined input! Please press 'c' to cancel demo"
+# 		return
 
 def main():
 
@@ -70,7 +82,6 @@ def main():
 		smach.StateMachine.add('START_SYSTEM', 
 									smach_ros.SimpleActionState('user_input_action', 
 																	 bdm.UserInterfaceAction, 
-																	 goal = ui_goal, 
 																	 goal_cb = get_ui_goal_cb, 
 																	 result_cb = show_hp_status_cb), 
 
@@ -80,14 +91,15 @@ def main():
 
 
 		def get_selection_cb(userdata, goal):
-			print "  d1 : joint velocity wobbler \n  d2 : joint velocity puppet\n  d3 : joint position keyboard\n  d4 : head wobbler\n  d5 : gripper cuff control\n d6 : joint position joystick\n"
+			print "  d1 : joint velocity wobbler \n  d2 : joint velocity puppet\n  d3 : joint position keyboard\n  d4 : head wobbler\n  d5 : gripper cuff control\n  d6: joint position joystick \n test1 : turtle_sim infinity drawer\n test2 : turtle_sim circle drawer\n test3 : dummy demo \n"
 			print "Select a demo to run (e.g. d1): "
-			inp, out, err = select.select([sys.stdin], [], [], 10)
+			inp, out, err = select.select([sys.stdin], [], [], 15)
 
 			if inp:
 
 				usr_inp = sys.stdin.readline().strip()
-				demo_req = get_demo_name(usr_inp)
+				x = YamlExtractor(usr_inp)
+				demo_req = x.get_name()
 
 				if demo_req is None:
 					print "Undefined input!\n"
@@ -160,7 +172,6 @@ def main():
 	ui_sm.execute()
 	rospy.spin()
 	sis.stop()
-
 
 if __name__ =='__main__':
 	main()

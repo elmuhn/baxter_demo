@@ -1,27 +1,34 @@
 d1: 
     command: ['rosrun', 'baxter_examples', 'joint_velocity_wobbler.py']
-    bonds: ['']
+    bonds: ['demo_wobbler']
 d2:
     command: ['rosrun', 'baxter_examples', 'joint_velocity_puppet.py', '-l', 'left']
-    bonds: ['']
+    bonds: ['demo_puppet']
 d3:
     command: ['rosrun', 'baxter_examples', 'joint_position_keyboard.py']
-    bonds: ['']
+    bonds: ['demo_jp_kb']
 d4:
     command: ['rosrun', 'baxter_examples', 'head_wobbler.py']
-    bonds: ['']
+    bonds: ['demo_hwobbler']
 d5:
     command: ['rosrun', 'baxter_examples', 'gripper_cuff_control.py']
-    bonds: ['']
+    bonds: ['demo_cuff']
 d6:
     command: ['rosrun', 'baxter_examples', 'joint_position_joystick.py', '-j', 'ps3']
-    bonds: ['']
+    bonds: ['demo_joystick']
 test1:
     command: ['roslaunch', 'baxter_demo', 'test1.launch']
     bonds: ['turtlesim_infinity']
 test2:
     command: ['roslaunch', 'baxter_demo', 'test2.launch']
-    bonds: ['turtlesim_circle', 'child_process_b']
+    bonds: ['child_process_b', 'turtlesim_circle']
 test3:
     command: ['roslaunch', 'baxter_demo', 'test3.launch']
     bonds: ['child_process_a', 'child_process_b', 'child_process_c', 'child_process_d']
+
+
+## Usage
+
+# Demo name (must be same as how the user types):
+    # Demo command (a list of commands to be passed in subprocess)
+    # Bond description (a lis of bond topic & id; for convenience, both bond topic and id are same)

@@ -15,7 +15,7 @@ class YamlExtractor(object):
 		self.desc = self.yaml_data.get(self.goal)
 
 	def yaml_loader(self, filepath):
-		""" Loads the configuration file that includes all the commands of demos. 
+		""" Loads the configuration file that includes all the demo descriptions. 
 		"""
 		with open(filepath, "r") as file_descriptor:
 			data = yaml.load(file_descriptor)
@@ -30,5 +30,8 @@ class YamlExtractor(object):
 	def get_command(self):
 		return self.desc.get('command')
 
-	def get_bonds(self):
+	def get_topics(self):
+		return self.desc.get('bonds')
+
+	def get_bond_ids(self):
 		return self.desc.get('bonds')

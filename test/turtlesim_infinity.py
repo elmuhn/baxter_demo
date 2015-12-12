@@ -10,6 +10,8 @@ from geometry_msgs.msg import Twist, Vector3
 from turtlesim.srv import TeleportAbsolute
 from bondpy import bondpy
 
+import sys
+
 # Per = input('The period of the function (T): ')
 # print("T=", Per)
 #rosbag record /turtle1/cmd_vel -l Per
@@ -35,6 +37,7 @@ def velocity_output():
 	start_time = rospy.Time.now().secs
 
 	while rospy.Time.now().secs - start_time < 10:
+	# while not rospy.is_shutdown():
 		time = rospy.get_time()-t0
 		x = 3.0*sin(((4.0*pi)/Per)*time)
 		y = 3.0*sin(((2.0*pi)/Per)*time)
@@ -43,19 +46,20 @@ def velocity_output():
 		o = velocities[1]
 
 		vel_cmd_out = Twist(Vector3(V,0,0),Vector3(0,0,o))
-		rospy.loginfo(vel_cmd_out)
+		# rospy.loginfo(vel_cmd_out)
 		pub.publish(vel_cmd_out)
-
 		r.sleep()
+
 
 if __name__ == '__main__':
 	try:
-		rospy.init_node('velocity_output', anonymous=True)
-		bond = bondpy.Bond("demo_bond_topic", "cn_t1")
+		rospy.init_node('turtlesim_infinity_node', anonymous=True)
+		bond = bondpy.Bond("turtlesim_infinity", "turtlesim_infinity")
 		bond.start()
 		rospy.wait_for_service('turtle1/teleport_absolute')
 		turtle_sp = rospy.ServiceProxy('/turtle1/teleport_absolute', TeleportAbsolute)
 		turtle_sp = (3.54,5.54,0)
 		velocity_output()
 		bond.break_bond()
-	except rospy.ROSInterruptException: pass
+	except rospy.ROSInterruptException: 
+		pass

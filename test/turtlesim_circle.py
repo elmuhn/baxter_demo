@@ -32,8 +32,11 @@ def velocity_output():
 	pub = rospy.Publisher('/turtle1/cmd_vel', Twist, queue_size=10)
 	r = rospy.Rate(75)
 	t0 = rospy.get_time()
+	start_time = rospy.Time.now().secs
 
-	while not rospy.is_shutdown():
+	while rospy.Time.now().secs - start_time < 10:
+
+	# while not rospy.is_shutdown():
 		time = rospy.get_time()-t0
 		x = 3.0*sin(((4.0*pi)/Per)*time)
 		y = 3.0*sin(((2.0*pi)/Per)*time)
@@ -51,7 +54,7 @@ if __name__ == '__main__':
 	try:
 		rospy.init_node('velocity_output', anonymous=True)
 		rospy.wait_for_service('turtle1/teleport_absolute')
-		bond = bondpy.Bond("demo_bond_topic", "cn_t2")
+		bond = bondpy.Bond("turtlesim_circle", "turtlesim_circle")
 		bond.start()
 		turtle_sp = rospy.ServiceProxy('/turtle1/teleport_absolute', TeleportAbsolute)
 		turtle_sp = (3.54,5.54,0)
