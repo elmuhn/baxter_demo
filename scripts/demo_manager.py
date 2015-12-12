@@ -169,7 +169,6 @@ class RunDemo(smach.State):
 			# Generate bond instances
 			for i in range(len(topics)):
 				bond = bondpy.Bond(topics[i], ids[i])
-				bond.start()
 				bond_list.append(bond)	
 		
 			ui_cmd = x.get_command()
