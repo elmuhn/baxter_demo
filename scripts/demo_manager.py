@@ -153,23 +153,25 @@ class RunDemo(smach.State):
 		if rd_goal.ui_command.command == bdm.GetUserCommand.MOVE_TO_HOME_POSITION or \
 		   rd_goal.ui_command.command == bdm.GetUserCommand.MOVE_TO_IDLE_MODE or \
 		   rd_goal.ui_command.command == bdm.GetUserCommand.CANCEL_DEMO:
+
 			return 'different_request'
 
-		global p
-		x = YamlExtractor(rd_goal.ui_command.command)
-		
-		if x.get_name() is not None:
-			topics = x.get_topics()
-			ids = x.get_bond_ids()
-			bond_list = []
-
-		# Generate bond instances
-		for i in range(len(topics)):
-			bond = bondpy.Bond(topics[i], ids[i])
-			bond.start()
-			bond_list.append(bond)		
-
 		else:
+
+			global p
+			x = YamlExtractor(rd_goal.ui_command.command)
+			
+			if x.get_name() is not None:
+				topics = x.get_topics()
+				ids = x.get_bond_ids()
+				bond_list = []
+
+			# Generate bond instances
+			for i in range(len(topics)):
+				bond = bondpy.Bond(topics[i], ids[i])
+				bond.start()
+				bond_list.append(bond)	
+		
 			ui_cmd = x.get_command()
 
 			if p is None:
