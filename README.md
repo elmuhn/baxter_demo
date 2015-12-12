@@ -56,22 +56,21 @@ def execute(self, userdata):
 		   rd_goal.ui_command.command == bdm.GetUserCommand.MOVE_TO_IDLE_MODE or \
 		   rd_goal.ui_command.command == bdm.GetUserCommand.CANCEL_DEMO:
 			return 'different_request'
-
-		global p
-		x = YamlExtractor(rd_goal.ui_command.command)
-		
-		if x.get_name() is not None:
-			topics = x.get_topics()
-			ids = x.get_bond_ids()
-			bond_list = []
-
-		# Generate bond instances
-		for i in range(len(topics)):
-			bond = bondpy.Bond(topics[i], ids[i])
-			bond.start()
-			bond_list.append(bond)		
-
+			
 		else:
+			global p
+			x = YamlExtractor(rd_goal.ui_command.command)
+			
+			if x.get_name() is not None:
+				topics = x.get_topics()
+				ids = x.get_bond_ids()
+				bond_list = []
+	
+			# Generate bond instances
+			for i in range(len(topics)):
+				bond = bondpy.Bond(topics[i], ids[i])
+				bond_list.append(bond)		
+
 			ui_cmd = x.get_command()
 
 			if p is None:
@@ -99,5 +98,43 @@ def execute(self, userdata):
 				return 'aborted'
 ```
 The first few lines are for userdata definition (userdata.goal_from_ui: goal message from the user interface and userdata.result_for_ui: result message to be sent by demo manager) and the if statement allows the state return a ```different_request``` outcome when another action is requested. 
+```p
+# Generate bond instances
+			for i in range(len(topics)):
+				bond = bondpy.Bond(topics[i], ids[i])
+				bond.start()
+				bond_list.append(bond)
+```
 
-Bonds are generated right before demo is executed. 
+Bonds are generated right before demo is executed. Each node must be included a bond with the same name as in yaml file. Let's say demo1 consists of node a (a.py) and node b (b.py). In yaml file, bonds field is constructed as a list of bond_a and bond_b. Then node a (a.py) must be included a bond with the bond topic name and bond id of ```"bond_a"``` while the node b similarly must have a bond defined with a bond topic name and a bond id of ```"bond_b"```. Once each bond instance is created, and added to a bond_list, the demo is executed with a name of "p". 
+```p
+	if p is None:
+				p = subprocess.Popen(ui_cmd)
+				rd_result.sys_result.result = bdm.GetResult.DEMO_EXECUTED
+
+				def on_formed_cb():
+					print "Bond has been formed"
+
+				def on_broken_cb():
+					print "Bond has been broken"
+					if p is not None:
+						nxr.terminate_process_and_children(p)
+						#termination_publisher()
+
+				for j in range(len(bond_list)):
+					bond_list[j].start()
+					bond_list[j].set_formed_callback(on_formed_cb)
+					bond_list[j].set_broken_callback(on_broken_cb)
+					bond_list[j].wait_until_formed()
+				return 'demo_executed'
+```
+
+After creating a subprocess, the state starts each of the bonds and waits for one of them to terminate. With ```on_broken_cb```, all the children is terminated in case at least one node crashes. 
+
+### 3.6 Other Files
+```baxter.py``` is a class of robot description for Baxter provided by Rethink Robotics. It is used for interacting with Baxter for moving to home position and moving to idle mode actions.
+
+```nxr.py``` is a file that has functions for terminating subprocesses. It is provided by Northwestern University NxR lab.
+
+## 4. Future Work
+User interface can be implemented different ways such as a GUI, a touch screen or a webpage. 
