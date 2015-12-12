@@ -98,4 +98,4 @@ def execute(self, userdata):
 				rd_result.sys_result.result = bdm.GetResult.IS_ABORTED
 				return 'aborted'
 ```
-
+The first few lines are for userdata definition (userdata.goal_from_ui: goal message from the user interface and userdata.result_for_ui: result message to be sent by demo manager) and the if statement allows the state return a ```different_request``` outcome when another action is requested. 
