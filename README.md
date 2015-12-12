@@ -37,3 +37,12 @@ The outer smach container (entire picture) is used as a concurrence container. T
 ![user interface smach tree](image/ui_smach_tree.png)
 
 Green color indicates the active state. The whole container starts with ```START_SYSTEM``` state asking the user hit enter from the keyboard. In ```SEND_SELECTION``` state works like a main list of demos to run. If there is no activity from user side within a certain amount of time the user interface sends a goal message to the demo manager to let the Baxter move to idle mode. This protects the Baxter's motors.
+
+### 3.3 Actions and Messages
+```UserInterface.action```, ```GetUserCommand.msg``` and ```GetResult.msg``` are used for message communication. The ```.action``` file has a goal and a result field. The goal field is a type of ```GetUserCommand``` and the result is a type of ```GetResult`` message. Message definitions are included in each file.
+
+### 3.4 Yaml File
+The ```demo_description.yaml``` file is where the demo maker defines the demo. It has a demo name, a command list and a bond description fields. Information about the demo is extracted by a class called ```YamlExtractor```. This class can return requested demo name, a list of command to be passed into subprocess and the bond description of each demo. The demo name that the user needs to input must match the demo name in yaml file.
+
+### 3.5 RunDemo State Class
+This class is important since it is where all the demos are traced. It is essential to know which node has crashed and 
