@@ -1,9 +1,9 @@
 # Baxter Demo Manager
 
-## Overview
+## 1.Overview
 This project aims to develop an API for providing a well defined way of starting and stopping the Baxter as well as switching between demos on it. The API is extensible for adding new demos and can be used with different user interfaces(e.g keyboard, graphic user interface). 
 
-## Tools
+## 2.Tools
 
 ### SMACH
 [SMACH](http://wiki.ros.org/smach) is a python library for constructing hierarchical state machines. In this project, it is used to provide a smooth worflow, and to handle complex communication protocols behind the scene.
