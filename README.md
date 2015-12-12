@@ -45,4 +45,57 @@ Green color indicates the active state. The whole container starts with ```START
 The ```demo_description.yaml``` file is where the demo maker defines the demo. It has a demo name, a command list and a bond description fields. Information about the demo is extracted by a class called ```YamlExtractor```. This class can return requested demo name, a list of command to be passed into subprocess and the bond description of each demo. The demo name that the user needs to input must match the demo name in yaml file.
 
 ### 3.5 RunDemo State Class
-This class is important since it is where all the demos are traced. It is essential to know which node has crashed and 
+This class is important since it is where all the demos are traced. It is essential to know which node has crashed. Sometimes demos keep running even if one or more nodes crash. This affects the demo's functionality. By implementing a bond generation allows the demo manager to know whether any of the nodes in demo terminates. If we look into the execute method of that class;
+
+```p
+def execute(self, userdata):
+		rd_goal = userdata.goal_from_ui
+		rd_result = userdata.result_for_ui
+
+		if rd_goal.ui_command.command == bdm.GetUserCommand.MOVE_TO_HOME_POSITION or \
+		   rd_goal.ui_command.command == bdm.GetUserCommand.MOVE_TO_IDLE_MODE or \
+		   rd_goal.ui_command.command == bdm.GetUserCommand.CANCEL_DEMO:
+			return 'different_request'
+
+		global p
+		x = YamlExtractor(rd_goal.ui_command.command)
+		
+		if x.get_name() is not None:
+			topics = x.get_topics()
+			ids = x.get_bond_ids()
+			bond_list = []
+
+		# Generate bond instances
+		for i in range(len(topics)):
+			bond = bondpy.Bond(topics[i], ids[i])
+			bond.start()
+			bond_list.append(bond)		
+
+		else:
+			ui_cmd = x.get_command()
+
+			if p is None:
+				p = subprocess.Popen(ui_cmd)
+				rd_result.sys_result.result = bdm.GetResult.DEMO_EXECUTED
+
+				def on_formed_cb():
+					print "Bond has been formed"
+
+				def on_broken_cb():
+					print "Bond has been broken"
+					if p is not None:
+						nxr.terminate_process_and_children(p)
+						#termination_publisher()
+
+				for j in range(len(bond_list)):
+					bond_list[j].start()
+					bond_list[j].set_formed_callback(on_formed_cb)
+					bond_list[j].set_broken_callback(on_broken_cb)
+					bond_list[j].wait_until_formed()
+				return 'demo_executed'
+
+			else:
+				rd_result.sys_result.result = bdm.GetResult.IS_ABORTED
+				return 'aborted'
+```
+
