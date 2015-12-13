@@ -106,7 +106,37 @@ The first few lines are for userdata definition (userdata.goal_from_ui: goal mes
 				bond_list.append(bond)
 ```
 
-Bonds are generated right before demo is executed. Each node must be included a bond with the same name as in yaml file. Let's say demo1 consists of node a (a.py) and node b (b.py). In yaml file, bonds field is constructed as a list of bond_a and bond_b. Then node a (a.py) must be included a bond with the bond topic name and bond id of ```"bond_a"``` while the node b similarly must have a bond defined with a bond topic name and a bond id of ```"bond_b"```. Once each bond instance is created, and added to a bond_list, the demo is executed with a name of "p". 
+Bonds are generated right before demo is executed. Each node must be included a bond with the same name as in yaml file. Let's say demo_foo consists of node a (node_a.py), node b (node_b.py) and node c (node_c.py). In yaml file, bonds field is constructed as a list of bond_a, bond_b and bond_c. Then node a (node_a.py) must be included a bond with the bond topic name and bond id of ```"bond_a"``` while the node b and c similarly must have bonds defined with a bond topic name and a bond id of ```"bond_b"``` and ```"bond_c"```. Once each bond instance is created, and added to a bond_list, the demo is executed with a name of "p". 
+
+``` yaml
+	demo_foo:
+	    command = ['roslaunch', 'pkg_name', 'demo_foo_launch_file.launch']
+	    bonds = ['bond_a', 'bond_b', 'bond_c']
+```
+demo_foo must be the name with which the user uses to run (e.g. if ui is keyboard then a string, "demo_foo" must be typed or if a GUI is used then it must generate a string named "demo_foo" when a button is pushed). Also each child node must include a bond definition. As an exampple for node a;
+
+```p
+# necessary imports
+from bondpy import bondpy
+
+# code here
+
+if '__name__' == '__main__':
+    try:
+	rospy.init_node('node_a')
+	bond = bondpy.Bond('bond_a', 'bond_a')
+	bond.start()
+	
+	# call code here
+	
+	rospy.spin()
+	
+    except AttributeError:
+    	bond.break_bond()
+```
+If the demo terminates after a while bonds will automatically be broken. If the demo infinitely runs then errors and exceptions can be included explicitly with ```bond.break_bond()```.  Please see baxter_examples [here](https://github.com/elmuhn/baxter_examples.git) for reference
+
+
 ```p
 	if p is None:
 				p = subprocess.Popen(ui_cmd)
