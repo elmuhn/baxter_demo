@@ -6,7 +6,7 @@ This project aims to develop an API for providing a well defined way of starting
 ## 2. Tools
 
 ### 2.1 SMACH
-[SMACH](http://wiki.ros.org/smach) is a python library for constructing hierarchical state machines. In this project, it is used to provide a smooth worflow, and to handle complex communication protocols behind the scene.
+[SMACH](http://wiki.ros.org/smach) is a python library for constructing hierarchical state machines. In this project, it is used to provide a smooth work flow, and to handle complex communication protocols behind the scene.
 
 ### 2.2 smach_viewer
 [smach_viewer](http://wiki.ros.org/YAML%20Overview) is a GUI for especially debugging. It also pprovides an introspection of the statuses of each state in a SMACH construction.
