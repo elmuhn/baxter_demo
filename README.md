@@ -110,8 +110,8 @@ Bonds are generated right before demo is executed. Each node must be included a 
 
 ``` yaml
 	demo_foo:
-	    command = ['roslaunch', 'pkg_name', 'demo_foo_launch_file.launch']
-	    bonds = ['bond_a', 'bond_b', 'bond_c']
+	    command: ['roslaunch', 'pkg_name', 'demo_foo_launch_file.launch']
+	    bonds: ['bond_a', 'bond_b', 'bond_c']
 ```
 demo_foo must be the name with which the user uses to run (e.g. if ui is keyboard then a string, "demo_foo" must be typed or if a GUI is used then it must generate a string named "demo_foo" when a button is pushed). Also each child node must include a bond definition. As an exampple for node a;
 
