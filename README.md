@@ -134,7 +134,7 @@ if '__name__' == '__main__':
     except AttributeError:
     	bond.break_bond()
 ```
-If the demo terminates after a while bonds will automatically be broken. If the demo infinitely runs then errors and exceptions can be included explicitly with ```bond.break_bond()```.  Please see baxter_examples [here](https://github.com/elmuhn/baxter_examples.git) for reference
+If the demo terminates after a while bonds will automatically be broken. If the demo infinitely runs then errors and exceptions can be included explicitly with ```bond.break_bond()```.  Please see baxter_examples [here](https://github.com/elmuhn/baxter_examples/blob/master/scripts/joint_velocity_wobbler.py) for reference
 
 
 ```p
